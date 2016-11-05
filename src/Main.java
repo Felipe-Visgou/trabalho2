@@ -1,6 +1,5 @@
 import java.awt.EventQueue;
 import java.io.IOException;
-
 import javax.swing.JFrame;
 
 
@@ -13,10 +12,9 @@ public class Main extends JFrame {
     
     private void initUI() throws IOException {
         
-    	Map I = new Map();
+    	Mapa I = new Mapa();
         add(I);
-        
-        setSize(900, 900);
+        setSize(800, 600);
         setResizable(true);
         
         setTitle("Catch the Pokemons");
@@ -39,7 +37,8 @@ public class Main extends JFrame {
 					e.printStackTrace();
 				}
         		ex.setVisible(true);
-        		Map.printMap();
+        		Mapa.printMapa();
+        		
             }
         });
 		
@@ -49,3 +48,4 @@ public class Main extends JFrame {
 
 
 }
+
