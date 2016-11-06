@@ -77,8 +77,8 @@ pos(7, 4, nada).
 pos(7, 5, nada).
 pos(7, 6, nada).
 pos(7, 7, up).
-pos(7, 8 nada).
-pos(7, 9 nada).
+pos(7, 8, nada).
+pos(7, 9, nada).
 pos(7, 10, nada).
 pos(7, 11, nada).
 pos(7, 12, nada).
@@ -142,3 +142,6 @@ pos(12, 9, nada).
 pos(12, 10, nada).
 pos(12, 11, nada).
 pos(12, 12, nada).
+agent_score(100).
+agent_health(100).
+agent_ammo(5).

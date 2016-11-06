@@ -17,10 +17,10 @@ import java.lang.System;
 
 public class Mapa extends JPanel implements ActionListener {
 	
-	public static java.lang.Integer score, health, pokemons; 
+	public static java.lang.Integer score, health, pokemons, ammo; 
 	public static int[] matrixMapa;
 	private Timer timer;
-    private final int DELAY = 75;
+    private final int DELAY = 10000;
 	
 	public Mapa() throws IOException{
 		matrixMapa = new int[12*12];
@@ -44,6 +44,7 @@ public class Mapa extends JPanel implements ActionListener {
 		 score = 0;
 		 health = 0;
 		 pokemons = 0;
+		 ammo = 5;
 	    timer = new Timer(DELAY, this);
 	        timer.start();
         // Desenha a interface do mapa
@@ -188,6 +189,7 @@ public class Mapa extends JPanel implements ActionListener {
         		}
         	}
         }
+        getDisplayInfo();
 		g2d.setColor(Color.BLACK);
 		g.setFont(g.getFont().deriveFont(15.0f));
 		g2d.drawString("Health : ", 600, 40);
@@ -196,6 +198,8 @@ public class Mapa extends JPanel implements ActionListener {
 		g2d.drawString(score.toString(), 650, 60);
 		g2d.drawString("Captured : ", 600, 80);
 		g2d.drawString(pokemons.toString(), 670, 80);
+		g2d.drawString("Ammo : ", 600, 100);
+		g2d.drawString(ammo.toString(), 670, 100);
     /*    switch(hood.getPos()){
         case "front":
             img6 = new ImageIcon("front.png");
@@ -220,19 +224,24 @@ public class Mapa extends JPanel implements ActionListener {
 	}
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-        getDisplayInfo();
 		repaint();
 	}
 	private void getDisplayInfo() {
-	    Query q1 = new Query("consult", new Term[] {new Atom("wumpus.pl")});
+	    Query q1 = new Query("consult", new Term[] {new Atom("teste.pl")});
 	    System.out.println("consult " + (q1.hasSolution() ? "succeeded" : "failed"));
 		 Query q2 = new Query("agent_score(X)");
 //		 Hashtable[] solution = q2.allSolutions();		
 		 Map<String, Term>[] solution = q2.allSolutions();		
 		 if (solution != null) 
-		 {	
 		   score = solution[0].get("X").intValue();
-		 }
+		 q2  = new Query("agent_health(X)");
+		 solution = q2.allSolutions();
+		 if(solution != null)
+			 health = solution[0].get("X").intValue();
+		 q2  = new Query("agent_ammo(X)");
+		 solution = q2.allSolutions();
+		 if(solution != null)
+			 ammo = solution[0].get("X").intValue();
 	}
 	public static void printMapa() {
     	for(int i = 0; i < 12; i++){
