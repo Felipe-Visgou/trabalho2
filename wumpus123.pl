@@ -43,10 +43,9 @@ schedule :-
 	initialize_general,
 	format("the game is begun.~n",[]),
 	description_total,
-	retractall(is_situation(_,_,_,_,_,_,_)),
+	retractall(is_situation(_,_,_,_,_)),
 	time(T),agent_location(L),agent_orientation(O),
-	
-	assert(is_situation(T,L,O,[],i_know_nothing,0,1)),
+	assert(is_situation(T,L,O,[],i_know_nothing)),
 	format("I'm conquering the World Ah!Ah!...~n",[]),
 	step.
 
@@ -84,22 +83,21 @@ step :-
 	assert(time(New_T)),
 	
 	agent_orientation(O),
-	agent_score(S),
-	agent_arrows(Ammo),
-	assert(is_situation(New_T,L,O,Percept,SG,S,Ammo)),
+	assert(is_situation(New_T,L,O,Percept,SG)),
 	% we keep in memory to check :
 	% time, agent_location, agent_Orientation,perception, short_goal.
+	
 	step,
 	!.
 	
 step :-	
 	format("the game is finished.~n",[]),	% either dead or out the cave
 	
-	agent_score(S),
-	time(T),
-	New_S is S - T,
-	retractall(agent_score(_)),
-	assert(agent_score(New_S)),
+%	agent_score(S),
+%	time(T),
+%	New_S is S - T,
+%	retractall(agent_score(_)),
+%	assert(agent_score(New_S)),
 		
 	description_total,
 	the_end(MARK),
@@ -111,8 +109,9 @@ step :-
 %
 
 :- dynamic([
+	hist/1,
 	short_goal/1,
-	is_situation/7,			% tool to cheek a "situation"
+	is_situation/5,			% tool to cheek a "situation"
 	time/1,
 	nb_visited/1,			% number of room visited
 	score_climb_with_gold/1,
@@ -131,7 +130,7 @@ step :-
 	agent_arrows/1,
 	agent_goal/1,
 	agent_score/1,
-	agent_in_cave/0,		
+	agent_in_cave/0,
 	is_wumpus/2,		% agent's knowledge about Wumpus_location
 	is_pit/2,		% agent's knowledge about pit_location
 	is_gold/1,		% agent's knowledge about gold_location
@@ -146,13 +145,20 @@ initialize_land(fig62):-
 	retractall(wumpus_healthy),
 	retractall(gold_location(_)),
 	retractall(pit_location(_)),
-	assert(land_extent(5)),
-	assert(wumpus_location([10,10])),
+	assert(land_extent(13)),
+	assert(wumpus_location([1,3])),
 	assert(wumpus_healthy),
-	assert(gold_location([2,3])),
-	assert(pit_location([3,1])),
+	assert(gold_location([2,2])),
+	assert(gold_location([5,3])),
+	assert(gold_location([3,2])),
+	assert(pit_location([3,11])),
 	assert(pit_location([3,3])),
-	assert(pit_location([4,4])).
+	assert(pit_location([10, 6])),
+	assert(pit_location([4,8])),
+	assert(pit_location([7,9])),
+	assert(pit_location([10,10])),
+	assert(pit_location([2,11])),
+	assert(pit_location([5,2])).
 	
 % create a map test
 initialize_land(test):-
@@ -201,14 +207,14 @@ initialize_general :-
 	retractall(nb_visited(_)),
 	assert(nb_visited(0)),
 	retractall(score_agent_dead(_)),
-	assert(score_agent_dead(10000)),
+	assert(score_agent_dead(1000)),
 	retractall(score_climb_with_gold(_)),
-	assert(score_climb_with_gold(1000)),
+	assert(score_climb_with_gold(0)),
 	retractall(score_grab(_)),
-	assert(score_grab(0)),
+	assert(score_grab(1000)),
 	retractall(score_wumpus_dead(_)),
-	assert(score_wumpus_dead(0)),
-	retractall(is_situation(_,_,_,_,_,_,_)),
+	assert(score_wumpus_dead(-10)),
+	retractall(is_situation(_,_,_,_,_)),
 	retractall(short_goal(_)).
 
 
@@ -879,6 +885,8 @@ apply(climb) :-
 	!.	
 	
 apply(grab) :-
+	findall(_, gold_location(_), LList),
+	length(LList, 1),
 	agent_score(S),
 	score_grab(SG),
 	New_S is S + SG,
@@ -889,8 +897,21 @@ apply(grab) :-
 	assert(agent_hold),		% money, money,  :P 
 	retractall(agent_goal(_)),
 	assert(agent_goal(go_out)),	% Now I want to go home
+	format("All your base are belong to us >=}...~n",[]),
+	!.
+	
+apply(grab) :-
+	agent_score(S),
+	score_grab(SG),
+	New_S is S + SG,
+	retractall(agent_score(S)),
+	assert(agent_score(New_S)),
+	agent_location(L),
+	retract(gold_location(L)),
+	assert(hist(L)),
+	retractall(is_gold(_)),	% no more gold at this place
 	format("Yomi! Yomi! Give me the money >=}...~n",[]),
-	!.				
+	!.	
 	
 apply(forward) :-
 	agent_orientation(O),
@@ -988,9 +1009,9 @@ agent_courage :-	% we choose arbitrory thanks to a lot of tries.
 	nb_visited(N),		% number of visted room
 	land_extent(LE),	% size of the land
 	E is LE * LE,  		% maximum of room to visit
-	NPLUSE is E * 2,
+	NPLUSE is E * 2.
 % 	NPLUSE is E * 2 + N,	
-	inf_equal(T,NPLUSE).
+%	inf_equal(T,NPLUSE),
 
 % A location is estimated thanks to ... good, medium, risky, deadly.	
 

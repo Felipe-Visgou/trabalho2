@@ -7,6 +7,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Map;
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;
@@ -17,18 +18,34 @@ import java.lang.System;
 
 public class Mapa extends JPanel implements ActionListener {
 	
-	public static java.lang.Integer score, energy, pokemons, ammo,ethanX, ethanY; 
 	public static int[] matrixMapa;
 	private Timer timer;
     private final int DELAY = 1000;
     private static Map<String, Term>[] step_solution;
     private static Term local_atual;
     private static Term sentidos_atuais;
+    private static Term score_atual;
+    private static Term  orient_atual;
+    private static Term  ammo_atual;
+    private static Term  energia_atual;
     private static int n_iteration = 0;
+	private ArrayList<WannaBe> pk;
+	private ArrayList<WannaBe> pu;
+	private ArrayList<Enemy> ggengar;
+	private ArrayList<Enemy> hhaunter;
+	private ArrayList<Enemy> aalakazam;
+	private ArrayList<Pit> vvortex;
+	private Agent agent;
 	
 	public Mapa() throws IOException{
 		matrixMapa = new int[12*12];
-		
+		pk = new ArrayList<WannaBe>();
+		pu = new ArrayList<WannaBe>();
+		ggengar = new ArrayList<Enemy>();
+		hhaunter = new ArrayList<Enemy>();
+		aalakazam = new ArrayList<Enemy>();
+		vvortex = new ArrayList<Pit>();
+		agent = new Agent();
     	FileReader inputStream = null;
     	int i,j;
         try {
@@ -45,16 +62,11 @@ public class Mapa extends JPanel implements ActionListener {
                 inputStream.close();
             }
         }
-		 score = 0;
-		 energy = 0;
-		 pokemons = 0;
-		 ammo = 5;
-		 ethanX = 1;
-		 ethanY = 1;
 	    timer = new Timer(DELAY, this);
 	        timer.start();
         // Desenha a interface do mapa
 	    initialize();
+	    initializeMap();
         initBoard();
 	}
     private void initBoard() {
@@ -70,8 +82,6 @@ public class Mapa extends JPanel implements ActionListener {
     }
     private void doDrawing(Graphics g) {
 
-		int it = 0;
-		int pok = 0;
 		int desloc = 40, defaultSize = 40;
 		Image extd, exte,exts,exti, id,ie,sd,se, ground;
 		Image cyndaquil, totodile, chikorita, gengar, alakazam, haunter, vortex, pokeball, ethan;
@@ -149,71 +159,62 @@ public class Mapa extends JPanel implements ActionListener {
         se = img1.getImage();
         img1 = new ImageIcon("pokeball.png");        
         pokeball = img1.getImage();
-        for(int i = 0 ;i < 12; i++){
-        	for(int j = 0; j < 12;j++){
-        		if(matrixMapa[j*12 + i] == '.') continue;
-        		if(matrixMapa[j*12 + i] == 'O'){
-        			switch(pok){
-        			case 0:
-        				g2d.drawImage(cyndaquil,desloc + i*desloc,desloc + j*desloc,defaultSize+20,defaultSize+20,this);
-        				pok++;
-        				break;
-        			case 1:
-        				g2d.drawImage(totodile,desloc + i*desloc,desloc + j*desloc,defaultSize+20,defaultSize+20,this);
-        				pok++;
-        				break;
-        			case 2:
-        				g2d.drawImage(chikorita,desloc + i*desloc,desloc + j*desloc,defaultSize+20,defaultSize+20,this);
-        				pok++;
-        				break;
-        			default: System.out.println("Erro ao desenhar os pokemons");
-        			}
-        		}
-        		else{
-        			if(matrixMapa[j*12 + i] == 'P'){
-            			g2d.drawImage(vortex,desloc + i*desloc, desloc +j*desloc,defaultSize-8,defaultSize-8,this);
-        			}
-        			else{
-        				if(matrixMapa[j*12 + i] == 'T'){
-        						g2d.drawImage(alakazam,desloc + i*desloc,desloc+ j*desloc,defaultSize+10,defaultSize+10,this);
-        					}
-        				else{
-        					if(matrixMapa[j*12 + i] == 'D')
-        						g2d.drawImage(gengar,desloc + i*desloc,desloc + j*desloc,defaultSize+12,defaultSize+12,this);
-        					else
-        						if(matrixMapa[j*12 + i] == 'd'){
-        							g2d.drawImage(haunter,desloc + i*desloc,desloc + j*desloc,defaultSize+12,defaultSize+12,this);
-        						}
-        						else
-            						if(matrixMapa[j*12 + i] == 'U'){
-            							g2d.drawImage(pokeball,desloc + i*desloc + 13,desloc + j*desloc + 13,defaultSize-22,defaultSize-22,this);
-            						}
-        				}
-        			}
-        		}
+        for(int i = 0; i < 20; i ++){
+        	
+        }
+    	int n=0;
+        for(WannaBe w:pk){
+        	switch(n){
+        	case 0:
+				g2d.drawImage(cyndaquil,desloc + w.x*desloc,desloc + w.y*desloc,defaultSize+20,defaultSize+20,this);
+				n++;
+				break;
+        	case 1:
+				g2d.drawImage(totodile,desloc + w.x*desloc,desloc + w.y*desloc,defaultSize+20,defaultSize+20,this);
+				n++;
+				break;
+			case 2:
+				g2d.drawImage(chikorita,desloc + w.x*desloc,desloc + w.y*desloc,defaultSize+20,defaultSize+20,this);
+				n++;
+				break;
+			default: System.out.println("Erro ao desenhar os pokemons");
         	}
+        }
+        for(WannaBe w: pu){
+			g2d.drawImage(pokeball,desloc + w.x*desloc + 13,desloc + w.y*desloc + 13,defaultSize-22,defaultSize-22,this);
+        }
+        for(Enemy e: ggengar){
+			g2d.drawImage(gengar,desloc + e.x*desloc + 13,desloc + e.y*desloc + 13,defaultSize,defaultSize,this);
+        }
+        for(Enemy e: hhaunter){
+			g2d.drawImage(haunter,desloc + e.x*desloc + 13,desloc + e.y*desloc + 13,defaultSize,defaultSize,this);
+        }
+        for(Enemy e: aalakazam){
+			g2d.drawImage(alakazam,desloc + e.x*desloc + 13,desloc + e.y*desloc + 13,defaultSize,defaultSize,this);
+        }
+        for(Pit p: vvortex){
+			g2d.drawImage(vortex,desloc + p.x*desloc + 13,desloc + p.y*desloc + 13,defaultSize-15,defaultSize-15,this);
+
         }
         updateKnowledge();
 		g2d.setColor(Color.BLACK);
 		g.setFont(g.getFont().deriveFont(15.0f));
 		g2d.drawString("Energy : ", 600, 40);
-		g2d.drawString(energy.toString(), 650, 40);
+		g2d.drawString(agent.energy.toString(), 650, 40);
 		g2d.drawString("Score : ", 600, 60);
-		g2d.drawString(score.toString(), 650, 60);
+		g2d.drawString(agent.score.toString(), 650, 60);
 		g2d.drawString("Captured : ", 600, 80);
-		g2d.drawString(pokemons.toString(), 670, 80);
+		g2d.drawString(agent.pokemonsCaptured.toString(), 670, 80);
 		g2d.drawString("Ammo : ", 600, 100);
-		g2d.drawString(ammo.toString(), 670, 100);
+		g2d.drawString(agent.ammo.toString(), 670, 100);
 	//	drawPercept(g2d);
 		
         ImageIcon img6;
         ethan = null;
-        ethanX = local_atual.arg(1).intValue();
-        ethanY = local_atual.arg(2).arg(1).intValue();
 		g2d.drawString("Position : ", 600, 120);
-		g2d.drawString(ethanX.toString(), 670, 120);
-		g2d.drawString(ethanY.toString(), 685, 120);
-        switch(step_solution[n_iteration].get("O").intValue()){
+		g2d.drawString(agent.x.toString(), 670, 120);
+		g2d.drawString(agent.y.toString(), 685, 120);
+        switch(agent.orientation){
         case 0:
             img6 = new ImageIcon("rightT.png");
             ethan = img6.getImage();
@@ -233,7 +234,7 @@ public class Mapa extends JPanel implements ActionListener {
         default: System.out.println("Posicao errada");
         }
    //     g2d.drawImage(ethan,desloc + 7, 12*desloc + 7,defaultSize-15,defaultSize-15,this);
-		g2d.drawImage(ethan,desloc + (ethanX-1)*desloc + 7,/*desloc*/ + (12*desloc - (ethanY-1)*desloc) + 7,defaultSize-15,defaultSize-15,this);
+		g2d.drawImage(ethan,desloc + (agent.x-1)*desloc + 7,/*desloc*/ + (12*desloc - (agent.y-1)*desloc) + 7,defaultSize-15,defaultSize-15,this);
 
 	}
     void drawPercept(Graphics2D g2d){
@@ -293,7 +294,10 @@ public class Mapa extends JPanel implements ActionListener {
 		}
 		local_atual = step_solution[n_iteration].get("L");	
 		sentidos_atuais = step_solution[n_iteration].get("Percept");
-		
+		score_atual = step_solution[n_iteration].get("S");
+		orient_atual =  step_solution[n_iteration].get("O");
+		ammo_atual = step_solution[n_iteration].get("Am");
+		agent.updateAgent(score_atual.intValue(), 100, ammo_atual.intValue(),local_atual.arg(1).intValue(), local_atual.arg(2).arg(1).intValue(), orient_atual.intValue(),0);
 	}
 	public static void initialize(){
 	    Query q1 = new Query("consult", new Term[] {new Atom("wumpus12.pl")});
@@ -303,7 +307,7 @@ public class Mapa extends JPanel implements ActionListener {
 	    if(solution1 != null){
 	    	System.out.println("nao deu merda no schedule");
 	    }
-	    Query q2 = new Query("is_situation(T,L,O,Percept,SG)");
+	    Query q2 = new Query("is_situation(T,L,O,Percept,SG,S,Am)");
 	    step_solution = q2.allSolutions();
 	    if(step_solution != null){
 	    }
@@ -315,5 +319,41 @@ public class Mapa extends JPanel implements ActionListener {
     		}
     		System.out.printf("\n");
     	}		
+	}
+	void initializeMap(){
+		
+        for(int i = 0 ;i < 12; i++){
+        	for(int j = 0; j < 12;j++){
+        		if(matrixMapa[j*12 + i] == '.') continue;
+        		if(matrixMapa[j*12 + i] == 'O'){
+        				pk.add(new WannaBe(i,j,1));
+        		}
+        		else{
+        			if(matrixMapa[j*12 + i] == 'T'){
+        				aalakazam.add(new Enemy(i,j,0));
+        			}
+        			else{
+        				if(matrixMapa[j*12 + i] == 'D'){
+        					ggengar.add(new Enemy(i,j,50));
+        				}	
+        				else{
+        					if(matrixMapa[j*12 + i] == 'd'){
+        						hhaunter.add(new Enemy(i,j,20));
+        					}
+        					else{
+            					if(matrixMapa[j*12 + i] == 'U'){
+            						pu.add(new WannaBe(i,j,2));
+            					}
+            					else{
+            						if(matrixMapa[j*12 + i] == 'P'){
+            							vvortex.add(new Pit(i,j));
+            						}
+            					}
+        					}
+        				}
+        			}
+        		}
+        	}
+        }
 	}
 }
