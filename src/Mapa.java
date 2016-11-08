@@ -17,10 +17,14 @@ import java.lang.System;
 
 public class Mapa extends JPanel implements ActionListener {
 	
-	public static java.lang.Integer score, energy, pokemons, ammo; 
+	public static java.lang.Integer score, energy, pokemons, ammo,ethanX, ethanY; 
 	public static int[] matrixMapa;
 	private Timer timer;
-    private final int DELAY = 10000;
+    private final int DELAY = 1000;
+    private static Map<String, Term>[] step_solution;
+    private static Term local_atual;
+    private static Term sentidos_atuais;
+    private static int n_iteration = 0;
 	
 	public Mapa() throws IOException{
 		matrixMapa = new int[12*12];
@@ -45,9 +49,12 @@ public class Mapa extends JPanel implements ActionListener {
 		 energy = 0;
 		 pokemons = 0;
 		 ammo = 5;
+		 ethanX = 1;
+		 ethanY = 1;
 	    timer = new Timer(DELAY, this);
 	        timer.start();
         // Desenha a interface do mapa
+	    initialize();
         initBoard();
 	}
     private void initBoard() {
@@ -142,9 +149,6 @@ public class Mapa extends JPanel implements ActionListener {
         se = img1.getImage();
         img1 = new ImageIcon("pokeball.png");        
         pokeball = img1.getImage();
-        img1 = new ImageIcon("back.png");
-        ethan = img1.getImage();
-        g2d.drawImage(ethan,desloc + 7, 12*desloc + 7,defaultSize-15,defaultSize-15,this);
         for(int i = 0 ;i < 12; i++){
         	for(int j = 0; j < 12;j++){
         		if(matrixMapa[j*12 + i] == '.') continue;
@@ -189,7 +193,7 @@ public class Mapa extends JPanel implements ActionListener {
         		}
         	}
         }
-        getDisplayInfo();
+        updateKnowledge();
 		g2d.setColor(Color.BLACK);
 		g.setFont(g.getFont().deriveFont(15.0f));
 		g2d.drawString("Energy : ", 600, 40);
@@ -200,53 +204,109 @@ public class Mapa extends JPanel implements ActionListener {
 		g2d.drawString(pokemons.toString(), 670, 80);
 		g2d.drawString("Ammo : ", 600, 100);
 		g2d.drawString(ammo.toString(), 670, 100);
-    /*    switch(hood.getPos()){
-        case "front":
-            img6 = new ImageIcon("front.png");
-            chapeu = img6.getImage();
+	//	drawPercept(g2d);
+		
+        ImageIcon img6;
+        ethan = null;
+        ethanX = local_atual.arg(1).intValue();
+        ethanY = local_atual.arg(2).arg(1).intValue();
+		g2d.drawString("Position : ", 600, 120);
+		g2d.drawString(ethanX.toString(), 670, 120);
+		g2d.drawString(ethanY.toString(), 685, 120);
+        switch(step_solution[n_iteration].get("O").intValue()){
+        case 0:
+            img6 = new ImageIcon("rightT.png");
+            ethan = img6.getImage();
             break;
-        case "left":
-            img6 = new ImageIcon("left.png");
-            chapeu = img6.getImage();
-            break;
-        case "right":
-            img6 = new ImageIcon("right.png");
-            chapeu = img6.getImage();
-            break;
-        case "back":
+        case 90:
             img6 = new ImageIcon("back.png");
-            chapeu = img6.getImage();
+            ethan = img6.getImage();
+            break;
+        case 180:
+            img6 = new ImageIcon("left.png");
+            ethan = img6.getImage();
+            break;
+        case 270:
+            img6 = new ImageIcon("front.png");
+            ethan = img6.getImage();
             break;
         default: System.out.println("Posicao errada");
         }
-        g2d.drawImage(chapeu, hood.getX()*18, hood.getY()*18,18,18,this);*/
-        
+   //     g2d.drawImage(ethan,desloc + 7, 12*desloc + 7,defaultSize-15,defaultSize-15,this);
+		g2d.drawImage(ethan,desloc + (ethanX-1)*desloc + 7,/*desloc*/ + (12*desloc - (ethanY-1)*desloc) + 7,defaultSize-15,defaultSize-15,this);
+
 	}
+    void drawPercept(Graphics2D g2d){
+    	int gap = 0;
+    	Term nextTerm;
+    	if(!sentidos_atuais.isAtom()){
+    	nextTerm = sentidos_atuais.arg(1);
+		g2d.drawString("Eu sinto : ",600, 120 );
+			if(nextTerm.name() == "yes"){
+				g2d.drawString("Fedor : ",670, 120 );
+				gap+=20;
+			}
+			else{
+				nextTerm = nextTerm.arg(2);
+				if(nextTerm.arg(1).name() == "yes"){
+					g2d.drawString("Brisa : ",670+gap, 120 );
+					gap+=20;
+				}
+				else{
+					nextTerm = nextTerm.arg(2);
+					if(nextTerm.arg(1).name() == "yes"){
+						g2d.drawString("Brilho : ",670+gap, 120 );
+						gap+=20;
+					}
+					else{
+						nextTerm = nextTerm.arg(2);
+						if(nextTerm.arg(1).name() == "yes"){
+							g2d.drawString("Pancada : ",670+gap, 120 );
+							gap+=20;
+						}
+						else{
+							nextTerm = nextTerm.arg(2);
+							if(nextTerm.arg(1).name() == "yes"){
+								g2d.drawString("Grito",670+gap, 120 );
+								gap+=20;
+							}
+						}
+					}
+				}
+			}
+    	}
+    }
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-		repaint();
+			repaint();
+			 n_iteration++;
 	}
-	private void getDisplayInfo() {
-	    Query q1 = new Query("consult", new Term[] {new Atom("teste.pl")});
+	private void updateKnowledge() {
+		if(n_iteration == step_solution.length){
+			//termina o jogo
+			try {
+				Thread.sleep(1000000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		local_atual = step_solution[n_iteration].get("L");	
+		sentidos_atuais = step_solution[n_iteration].get("Percept");
+		
+	}
+	public static void initialize(){
+	    Query q1 = new Query("consult", new Term[] {new Atom("wumpus12.pl")});
 	    System.out.println("consult " + (q1.hasSolution() ? "succeeded" : "failed"));
-	    Query q = new Query("init_agent");
+	    Query q = new Query("schedule");
 	    Map<String, Term>[] solution1 = q.allSolutions();
 	    if(solution1 != null){
-	    	System.out.println("nao deu merda no init");
+	    	System.out.println("nao deu merda no schedule");
 	    }
-		 Query q2 = new Query("agent_score(X)");
-//		 Hashtable[] solution = q2.allSolutions();		
-		 Map<String, Term>[] solution = q2.allSolutions();		
-		 if (solution != null) 
-		   score = solution[0].get("X").intValue();
-		 q2  = new Query("agent_energy(X)");
-		 solution = q2.allSolutions();
-		 if(solution != null)
-			 energy = solution[0].get("X").intValue();
-		 q2  = new Query("agent_ammo(X)");
-		 solution = q2.allSolutions();
-		 if(solution != null)
-			 ammo = solution[0].get("X").intValue();
+	    Query q2 = new Query("is_situation(T,L,O,Percept,SG)");
+	    step_solution = q2.allSolutions();
+	    if(step_solution != null){
+	    }
 	}
 	public static void printMapa() {
     	for(int i = 0; i < 12; i++){

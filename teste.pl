@@ -150,10 +150,10 @@ pos(12, 9, vazio).
 pos(12, 10, vazio).
 pos(12, 11, vazio).
 pos(12, 12, vazio).
-wall(13,_).
-wall(_,13).
-wall(0,_).
-wall(_,0).
+wall(X,Y) :- Y =< 0.
+wall(X,Y) :- X =< 0.
+wall(X,Y) :- X >= 13.
+wall(X,Y) :- Y >= 13.
 adjacente(X, Y, AX, Y) :-  X < 12, AX is X + 1.   
 adjacente(X, Y, AX, Y) :-  X > 1,  AX is X - 1.   
 adjacente(X, Y, X, AY) :- Y < 12, AY is Y + 1. 

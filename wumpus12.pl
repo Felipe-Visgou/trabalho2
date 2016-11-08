@@ -45,6 +45,7 @@ schedule :-
 	description_total,
 	retractall(is_situation(_,_,_,_,_)),
 	time(T),agent_location(L),agent_orientation(O),
+	
 	assert(is_situation(T,L,O,[],i_know_nothing)),
 	format("I'm conquering the World Ah!Ah!...~n",[]),
 	step.
@@ -86,7 +87,6 @@ step :-
 	assert(is_situation(New_T,L,O,Percept,SG)),
 	% we keep in memory to check :
 	% time, agent_location, agent_Orientation,perception, short_goal.
-	
 	step,
 	!.
 	
@@ -144,10 +144,10 @@ initialize_land(fig62):-
 	retractall(wumpus_healthy),
 	retractall(gold_location(_)),
 	retractall(pit_location(_)),
-	assert(land_extent(5)),
-	assert(wumpus_location([1,3])),
+	assert(land_extent(13)),
+	assert(wumpus_location([10,10])),
 	assert(wumpus_healthy),
-	assert(gold_location([2,3])),
+	assert(gold_location([11,11])),
 	assert(pit_location([3,1])),
 	assert(pit_location([3,3])),
 	assert(pit_location([4,4])).
@@ -192,7 +192,7 @@ initialize_agent(fig62):-
 		
 % initialization general
 initialize_general :-
-	initialize_land(test),		% Which map you wish
+	initialize_land(fig62),		% Which map you wish
 	initialize_agent(fig62),
 	retractall(time(_)),
 	assert(time(0)),
