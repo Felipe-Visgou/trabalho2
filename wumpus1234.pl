@@ -43,13 +43,21 @@ schedule :-
 	initialize_general,
 	format("the game is begun.~n",[]),
 	description_total,
-	retractall(is_situation(_,_,_,_,_,_,_)),
-	time(T),agent_location(L),agent_orientation(O),
+	retractall(is_situation(_,_,_,_,_,_,_,_,_,_,_)),
+	time(T),agent_location(L),agent_orientation(O),wumpus_alive(Wf),
 	
-	assert(is_situation(T,L,O,[],i_know_nothing,0,1)),
+	assert(is_situation(T,L,O,[],i_know_nothing,0,5,Wf,[0,0],[0,0],[0,0])),
 	format("I'm conquering the World Ah!Ah!...~n",[]),
 	step.
 
+% step :-
+%	agent_location(L),
+%	L = [5, 0],
+%	description_total,
+%	the_end(MARK),
+%	display(MARK),
+%	!.
+	
 step :-
 	agent_healthy,		% If I'm computing... so I am...
 	agent_in_cave,
@@ -82,11 +90,15 @@ step :-
 	New_T is T+1,
 	retractall(time(_)),
 	assert(time(New_T)),
-	
 	agent_orientation(O),
 	agent_score(S),
 	agent_arrows(Ammo),
-	assert(is_situation(New_T,L,O,Percept,SG,S,Ammo)),
+	wumpus_alive(Wf),
+	New_S is S - 1,
+	retractall(agent_score(_)),
+	assert(agent_score(New_S)),
+	ouro1(O1X,O1Y),ouro2(O2X,O2Y), ouro3(O3X,O3Y),
+	assert(is_situation(New_T,L,O,Percept,SG,New_S,Ammo,Wf,[O1X,O1Y],[O2X,O2Y],[O3X,O3Y])),
 	% we keep in memory to check :
 	% time, agent_location, agent_Orientation,perception, short_goal.
 	step,
@@ -111,9 +123,16 @@ step :-
 %
 
 :- dynamic([
+	ouro1/2,
+	ouro2/2,
+	ouro3/2,	
+	lgood/1,
+	hist/1,
+	d_aim/1,
 	short_goal/1,
-	is_situation/7,			% tool to cheek a "situation"
+	is_situation/11,			% tool to cheek a "situation"
 	time/1,
+	it/1,
 	nb_visited/1,			% number of room visited
 	score_climb_with_gold/1,
 	score_grab/1,
@@ -131,7 +150,7 @@ step :-
 	agent_arrows/1,
 	agent_goal/1,
 	agent_score/1,
-	agent_in_cave/0,		
+	agent_in_cave/0,
 	is_wumpus/2,		% agent's knowledge about Wumpus_location
 	is_pit/2,		% agent's knowledge about pit_location
 	is_gold/1,		% agent's knowledge about gold_location
@@ -146,13 +165,25 @@ initialize_land(fig62):-
 	retractall(wumpus_healthy),
 	retractall(gold_location(_)),
 	retractall(pit_location(_)),
-	assert(land_extent(5)),
-	assert(wumpus_location([10,10])),
+	assert(land_extent(13)),
+	assert(wumpus_location([3,1])),
 	assert(wumpus_healthy),
-	assert(gold_location([2,3])),
-	assert(pit_location([3,1])),
+%	assert(gold_location([11,2])),
+%	assert(gold_location([9,11])),
+%	assert(gold_location([3,5])),
+
+	assert(gold_location([3,2])),
+	assert(gold_location([2,2])),
+	assert(gold_location([1,2])),
+ 
+	assert(pit_location([11,3])),
 	assert(pit_location([3,3])),
-	assert(pit_location([4,4])).
+	assert(pit_location([10,6])),
+	assert(pit_location([4,8])),
+	assert(pit_location([7,9])),
+	assert(pit_location([10,10])),
+	assert(pit_location([2,11])),
+	assert(pit_location([5,2])).
 	
 % create a map test
 initialize_land(test):-
@@ -201,15 +232,26 @@ initialize_general :-
 	retractall(nb_visited(_)),
 	assert(nb_visited(0)),
 	retractall(score_agent_dead(_)),
-	assert(score_agent_dead(10000)),
+	assert(score_agent_dead(1000)),
 	retractall(score_climb_with_gold(_)),
-	assert(score_climb_with_gold(1000)),
+	assert(score_climb_with_gold(0)),
 	retractall(score_grab(_)),
-	assert(score_grab(0)),
+	assert(score_grab(1000)),
 	retractall(score_wumpus_dead(_)),
 	assert(score_wumpus_dead(0)),
-	retractall(is_situation(_,_,_,_,_,_,_)),
-	retractall(short_goal(_)).
+	retractall(wumpus_alive(_)),
+	assert(wumpus_alive(1)),
+	retractall(ouro1(_,_)),
+	retractall(ouro2(_,_)),
+	retractall(ouro3(_,_)),
+	assert(ouro1(0,0)),
+	assert(ouro2(0,0)),
+	assert(ouro3(0,0)),
+	assert(it(0)),
+	retractall(is_situation(_,_,_,_,_,_,_,_,_,_,_)),
+	retractall(short_goal(_)),
+	retractall(lgood(_)),
+	assert(lgood([[1,1]])).
 
 
 %-------------------------------------------------------------------------------
@@ -394,7 +436,7 @@ assume_wumpus(yes,L) :- 		% before I knew there is no Wumpus,
 	!.				% ... Except if it's able to move 
 	
 assume_wumpus(yes,L) :- 		
-	wall(L),			% Wumpus can't be in a wall
+	is_wall(L),			% Wumpus can't be in a wall
 %	wumpus_healthy,			
 	retractall(is_wumpus(_,L)),
 	assert(is_wumpus(no,L)),
@@ -446,7 +488,7 @@ assume_pit(yes,L) :- 			% before I knew there is no pit,
 	!.
 	
 assume_pit(yes,L) :- 
-	wall(L),			% No Pit in a wall...
+	is_wall(L),			% No Pit in a wall...
 	retractall(is_pit(_,L)),
 	assert(is_pit(no,L)),
 	!.
@@ -488,9 +530,15 @@ add_scream_KB(no).
 
 ask_KB(Action) :- make_action_query(Strategy,Action).
 
-make_action_query(Strategy,Action) :- act(strategy_reflex,Action),!.
-make_action_query(Strategy,Action) :- act(strategy_find_out,Action),!.
-make_action_query(Strategy,Action) :- act(strategy_go_out,Action),!.
+make_action_query(Strategy,Action) :- act(strategy_reflex,Action), 
+	short_goal(SG),
+	assert(hist(SG)),!.
+make_action_query(Strategy,Action) :- act(strategy_find_out,Action),
+	short_goal(SG),
+	assert(hist(SG)),!.
+make_action_query(Strategy,Action) :- act(strategy_go_out,Action),
+	short_goal(SG),
+	assert(hist(SG)),!.
 
 
 % Strategy Reflex
@@ -505,8 +553,7 @@ act(strategy_reflex,die) :-
 	wumpus_healthy,
 	agent_location(L),
 	wumpus_location(L),
-	is_short_goal(die_wumpus),
-	!.
+	is_short_goal(die_wumpus),!.
 	
 act(strategy_reflex,die) :- 
 	agent_healthy,
@@ -592,6 +639,89 @@ act(strategy_find_out,turnright) :-
 		
 % And there is a good room but not adjacent	
 	
+act(strategy_find_out,forward) :- 			
+	agent_goal(find_out),
+	agent_courage,		
+	good(_),			% I'm interested by good somewhere
+	good([GX, GY]),
+	assert(d_aim([GX, GY])),
+	agent_location([LX, LY]),
+	location_ahead([X, Y]),		% I'm looking for this better...
+	medium([X, Y]),			% I use medium room to go to
+	no(is_wall([X, Y])),
+	dist(X, GX, RX),
+	dist(LX, GX, RLX),
+	inf_equal(RX, RLX),
+	dist(Y, GY, RY),
+	dist(LY, GY, RLY),
+	inf_equal(RY, RLY),
+	is_short_goal(find_out_forward_good_medium_track),
+	!.
+	
+act(strategy_find_out,turnleft) :- 	
+	agent_goal(find_out),
+	agent_courage,		
+	good(_),			% I'm interested by good somewhere
+	good([GX, GY]),
+	assert(d_aim([GX, GY])),
+	agent_orientation(O),
+	Planned_O is (O+90) mod 360,	% my leftside can help me :
+	agent_location([LX, LY]),
+	location_toward([LX, LY],Planned_O,[X, Y]),
+	medium([X, Y]),		% I use medium room to go to
+	no(is_wall([X, Y])),
+	dist(X, GX, RX),
+	dist(LX, GX, RLX),
+	inf_equal(RX, RLX),
+	dist(Y, GY, RY),
+	dist(LY, GY, RLY),
+	inf_equal(RY, RLY),
+	is_short_goal(find_out_turnleft_good_medium_track),
+	!.
+	
+act(strategy_find_out,turnright) :- 		
+	agent_goal(find_out),
+	agent_courage,
+	good(_),			% I'm interested by good somewhere
+	good([GX, GY]),
+	assert(d_aim([GX, GY])),
+	agent_orientation(O),
+	Planned_O is abs(O-90) mod 360, % my rightside can help me
+	agent_location([LX, LY]),
+	location_toward([LX, LY],Planned_O,[X, Y]),
+	medium([X, Y]),		% I use medium room 
+	no(is_wall([X, Y])),
+	dist(X, GX, RX),
+	dist(LX, GX, RLX),
+	inf_equal(RX, RLX),
+	dist(Y, GY, RY),
+	dist(LY, GY, RLY),
+	inf_equal(RY, RLY),
+	is_short_goal(find_out_turnright_good_medium_track),
+	!.
+	
+act(strategy_find_out,turnleft) :-	% I want to change completely  
+	agent_goal(find_out),		% my direction ( + 180 )
+	agent_courage,
+	good(_),			% while I don't find it, I look for
+	good([GX, GY]),
+	assert(d_aim([GX, GY])),
+	agent_orientation(O),
+	Planned_O is (O+180) mod 360,
+	agent_location([LX, LY]),
+	location_toward([LX, LY],Planned_O,[X, Y]),
+	medium([X, Y]),
+	no(is_wall([X, Y])),
+	dist(X, GX, RX),
+	dist(LX, GX, RLX),
+	inf_equal(RX, RLX),
+	dist(Y, GY, RY),
+	dist(LY, GY, RLY),
+	inf_equal(RY, RLY),
+	is_short_goal(find_out_180_good_track),!.
+	
+% If no adjacent room is medium & is closer to good(X), then:
+
 act(strategy_find_out,forward) :- 			
 	agent_goal(find_out),
 	agent_courage,		
@@ -791,7 +921,8 @@ apply(die) :-
 
 apply(shoot) :-				% Now we check if actually there is
 	agent_location([X,Y]),
-	location_ahead([X,NY]),		
+	location_ahead([X,NY]),
+	agent_arrows(AR),	
 	wumpus_location([X,WY]),	% Wumpus, because it could be only
 	dist(NY,WY,R1),			% a supposition.
 	dist(Y,WY,R2),
@@ -800,13 +931,15 @@ apply(shoot) :-				% Now we check if actually there is
 	retractall(wumpus_location(_)),
 	retractall(wumpus_healthy),
 	retractall(agent_arrows(_)),
-	assert(agent_arrows(0)),
+	New_AR is AR -1,	
+	assert(agent_arrows(New_AR)),
 	
 	is_wumpus(yes,WL),
 	assert(is_wumpus(no,WL)),
 	retractall(is_wumpus(yes,_)),
 	assert(is_dead),
-	
+	retractall(wumpus_alive(_)),
+	assert(wumpus_alive(0)),
 	agent_score(S),	
 	score_wumpus_dead(SWD),
 	New_S is S + SWD,
@@ -818,6 +951,7 @@ apply(shoot) :-				% Now we check if actually there is
 apply(shoot) :-				% Now we check if actually there is
 	agent_location([X,Y]),
 	location_ahead([NX,Y]),	
+	agent_arrows(AR),
 	wumpus_location([WX,Y]),	% Wumpus, because it could be only
 	dist(NX,WX,R1),			% a supposition.
 	dist(X,WX,R2),
@@ -826,13 +960,15 @@ apply(shoot) :-				% Now we check if actually there is
 	retractall(wumpus_location(_)),
 	retractall(wumpus_healthy),
 	retractall(agent_arrows(_)),
-	assert(agent_arrows(0)),
+	New_AR is AR - 1,
+	assert(agent_arrows(New_AR)),
 	
 	is_wumpus(yes,WL),
 	assert(is_wumpus(no,WL)),
 	retractall(is_wumpus(yes,_)),
 	assert(is_dead),
-	
+	retractall(wumpus_alive(_)),
+	assert(wumpus_alive(0)),
 	agent_score(S),	
 	score_wumpus_dead(SWD),
 	New_S is S + SWD,
@@ -879,19 +1015,80 @@ apply(climb) :-
 	!.	
 	
 apply(grab) :-
+	findall(_, gold_location(_), LList),
+	length(LList, 1),
 	agent_score(S),
 	score_grab(SG),
 	New_S is S + SG,
 	retractall(agent_score(S)),
 	assert(agent_score(New_S)),
+	gold_location([LX,LY]),
 	retractall(gold_location(_)),	% no more gold at this place
 	retractall(is_gold(_)),		% The gold is with me!
 	assert(agent_hold),		% money, money,  :P 
 	retractall(agent_goal(_)),
 	assert(agent_goal(go_out)),	% Now I want to go home
-	format("Yomi! Yomi! Give me the money >=}...~n",[]),
-	!.				
+	retractall(ouro3(_,_)),
+	assert(ouro3(LX,LY)),
+	format("All your base are belong to us >=}...~n",[]),
+	!.
 	
+% apply(grab) :-
+%	agent_score(S),
+%	score_grab(SG),
+%	New_S is S + SG,
+%	retractall(agent_score(S)),
+%	assert(agent_score(New_S)),
+%	agent_location([LX,LY]),
+%	retract(gold_location([LX,LY])),
+%	assert(hist([LX,LY])),
+%	retractall(is_gold(_)),	% no more gold at this place
+%	it(KK),
+%	retractall(it(_)),
+%	New_KK is KK + 1,
+%	assert(it(New_KK)),
+	
+%	((ouro1(X, Y), F = [X, Y], not(F = [0,0]), retractall(ouro2(_,_)), assert(ouro2(LX, LY)); (ZX is 0, ZY is 0,  ouro2(ZX, ZY), assert(ouro1(LX, LY)))),
+%	format("Yomi! Yomi! Give me the money >=}...~n",[]),
+%	!.	
+apply(grab) :-
+	it(KK),
+	KK = 0,
+	agent_score(S),
+	score_grab(SG),
+	New_S is S + SG,
+	retractall(agent_score(S)),
+	assert(agent_score(New_S)),
+	agent_location([LX,LY]),
+	retract(gold_location([LX,LY])),
+	assert(hist([LX,LY])),
+	retractall(is_gold(_)),	% no more gold at this place
+	retractall(ouro1(_,_)),
+	assert(ouro1(LX,LY)),
+	retractall(it(_)),
+	assert(it(1)),
+%	((ouro1(X, Y), F = [X, Y], not(F = [0,0]), retractall(ouro2(_,_)), assert(ouro2(LX, LY)); (ZX is 0, ZY is 0,  ouro2(ZX, ZY), assert(ouro1(LX, LY)))),
+	format("Yomi! Yomi! Give me the money >=}...~n",[]),
+	!.
+	
+apply(grab) :-
+	it(KK), KK = 1,
+	agent_score(S),
+	score_grab(SG),
+	New_S is S + SG,
+	retractall(agent_score(S)),
+	assert(agent_score(New_S)),
+	agent_location([LX,LY]),
+	retract(gold_location([LX,LY])),
+	assert(hist([LX,LY])),
+	retractall(is_gold(_)),	% no more gold at this plac
+	retractall(ouro2(_,_)),
+	assert(ouro2(LX,LY)),
+	retractall(it(_)),
+	assert(it(2)),
+%	((ouro1(X, Y), F = [X, Y], not(F = [0,0]), retractall(ouro2(_,_)), assert(ouro2(LX, LY)); (ZX is 0, ZY is 0,  ouro2(ZX, ZY), assert(ouro1(LX, LY)))),
+	format("Yomi! Yomi! Give me the money >=}...~n",[]),
+	!.
 apply(forward) :-
 	agent_orientation(O),
 	agent_location(L),
@@ -997,7 +1194,11 @@ agent_courage :-	% we choose arbitrory thanks to a lot of tries.
 good(L) :-				% a wall can be a good room !!!
 	is_wumpus(no,L),
 	is_pit(no,L),
-	no(is_visited(L)).
+	no(is_visited(L)),
+	lgood(G).
+%	((nth0(X, G, L, R), nth0(0, R2, L, R), retractall(lgood(_)), assert(lgood(R2)));
+%	(nth0(0, R2, L, G), retractall(lgood(_)), assert(lgood(R2)))).
+	
 	
 medium(L) :- 				% Obviously if is_visited(L) ->
 	is_visited(L).			% is_wumpus(no,L) and is_pit(no,L)			

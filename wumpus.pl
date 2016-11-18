@@ -1,1 +1,0 @@
-agent_location(100).

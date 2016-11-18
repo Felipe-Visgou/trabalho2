@@ -20,7 +20,7 @@ public class Mapa extends JPanel implements ActionListener {
 	
 	public static int[] matrixMapa;
 	private Timer timer;
-    private final int DELAY = 1000;
+    private final int DELAY = 700;
     private static Map<String, Term>[] step_solution;
     private static Term local_atual;
     private static Term sentidos_atuais;
@@ -28,6 +28,8 @@ public class Mapa extends JPanel implements ActionListener {
     private static Term  orient_atual;
     private static Term  ammo_atual;
     private static Term  energia_atual;
+    private static int wumpus_alive;
+    private static Term Ouro1, Ouro2, Ouro3;
     private static int n_iteration = 0;
 	private ArrayList<WannaBe> pk;
 	private ArrayList<WannaBe> pu;
@@ -49,7 +51,7 @@ public class Mapa extends JPanel implements ActionListener {
     	FileReader inputStream = null;
     	int i,j;
         try {
-            inputStream = new FileReader("instance.txt");
+            inputStream = new FileReader("instance2.txt");
             for(i = 0; i< 12; i++){
             	for(j = 0; j < 12; j++){
             		matrixMapa[i*12 + j] = inputStream.read();
@@ -166,15 +168,18 @@ public class Mapa extends JPanel implements ActionListener {
         for(WannaBe w:pk){
         	switch(n){
         	case 0:
-				g2d.drawImage(cyndaquil,desloc + w.x*desloc,desloc + w.y*desloc,defaultSize+20,defaultSize+20,this);
+        		if(w.in_game == 1)
+        			g2d.drawImage(cyndaquil,desloc + w.x*desloc,desloc + w.y*desloc,defaultSize+20,defaultSize+20,this);
 				n++;
 				break;
         	case 1:
-				g2d.drawImage(totodile,desloc + w.x*desloc,desloc + w.y*desloc,defaultSize+20,defaultSize+20,this);
+        		if(w.in_game == 1)
+        			g2d.drawImage(totodile,desloc + w.x*desloc,desloc + w.y*desloc,defaultSize+20,defaultSize+20,this);
 				n++;
 				break;
-			case 2:
-				g2d.drawImage(chikorita,desloc + w.x*desloc,desloc + w.y*desloc,defaultSize+20,defaultSize+20,this);
+			case 2:	
+        		if(w.in_game == 1)
+        			g2d.drawImage(chikorita,desloc + w.x*desloc,desloc + w.y*desloc,defaultSize+20,defaultSize+20,this);
 				n++;
 				break;
 			default: System.out.println("Erro ao desenhar os pokemons");
@@ -184,7 +189,8 @@ public class Mapa extends JPanel implements ActionListener {
 			g2d.drawImage(pokeball,desloc + w.x*desloc + 13,desloc + w.y*desloc + 13,defaultSize-22,defaultSize-22,this);
         }
         for(Enemy e: ggengar){
-			g2d.drawImage(gengar,desloc + e.x*desloc + 13,desloc + e.y*desloc + 13,defaultSize,defaultSize,this);
+        	if(e.in_game == 1)
+        		g2d.drawImage(gengar,desloc + e.x*desloc + 13,desloc + e.y*desloc + 13,defaultSize,defaultSize,this);
         }
         for(Enemy e: hhaunter){
 			g2d.drawImage(haunter,desloc + e.x*desloc + 13,desloc + e.y*desloc + 13,defaultSize,defaultSize,this);
@@ -297,17 +303,31 @@ public class Mapa extends JPanel implements ActionListener {
 		score_atual = step_solution[n_iteration].get("S");
 		orient_atual =  step_solution[n_iteration].get("O");
 		ammo_atual = step_solution[n_iteration].get("Am");
+		//.get(0).in_game = step_solution[n_iteration].get("F1").intValue(); 
+		wumpus_alive = step_solution[n_iteration].get("Wf").intValue();
+		ggengar.get(0).in_game = wumpus_alive;
+		Ouro1 = step_solution[n_iteration].get("Ouro1");
+		Ouro2 = step_solution[n_iteration].get("Ouro2");
+		Ouro3 = step_solution[n_iteration].get("Ouro3");
+		for(WannaBe e: pk){
+				if(((e.x+1) == Ouro1.arg(1).intValue()) && ((12- e.y) == Ouro1.arg(2).arg(1).intValue()))
+					e.in_game = 0;
+				if(((e.x+1) == Ouro2.arg(1).intValue()) && ((12- e.y) == Ouro2.arg(2).arg(1).intValue()))
+					e.in_game = 0;
+				if(((e.x+1) == Ouro3.arg(1).intValue()) && ((12-e.y) == Ouro3.arg(2).arg(1).intValue()))
+					e.in_game = 0;
+		}
 		agent.updateAgent(score_atual.intValue(), 100, ammo_atual.intValue(),local_atual.arg(1).intValue(), local_atual.arg(2).arg(1).intValue(), orient_atual.intValue(),0);
 	}
 	public static void initialize(){
-	    Query q1 = new Query("consult", new Term[] {new Atom("wumpus12.pl")});
+	    Query q1 = new Query("consult", new Term[] {new Atom("wumpus1234.pl")});
 	    System.out.println("consult " + (q1.hasSolution() ? "succeeded" : "failed"));
 	    Query q = new Query("schedule");
 	    Map<String, Term>[] solution1 = q.allSolutions();
 	    if(solution1 != null){
-	    	System.out.println("nao deu merda no schedule");
+	    	System.out.println("great");
 	    }
-	    Query q2 = new Query("is_situation(T,L,O,Percept,SG,S,Am)");
+	    Query q2 = new Query("is_situation(T,L,O,Percept,SG,S,Am,Wf,Ouro1, Ouro2, Ouro3)");
 	    step_solution = q2.allSolutions();
 	    if(step_solution != null){
 	    }
